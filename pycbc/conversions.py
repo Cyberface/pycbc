@@ -392,13 +392,63 @@ def chi_a(mass1, mass2, spin1z, spin2z):
     """
     return (spin2z * mass2 - spin1z * mass1) / (mass2 + mass1)
 
+def A1(q):
+    """A2 defined under eq. 3.2 of 1408.1810
+    q=mass1/mass2 where mass1>=mass2
+    This is the opposite convention to 1408.1810.
+    """
+    return 2. + 3./(2.*q)
+
+def A2(q):
+    """A1 defined under eq. 3.2 of 1408.1810
+    q=mass1/mass2 where mass1>=mass2
+    This is the opposite convention to 1408.1810.
+    """
+    return 2. + 3.*q/2.
+
+def Sp(mass1, mass2, spin1x, spin1y, spin2x, spin2y):
+    """Eq. 3.3 of 1408.1810.
+    """
+    q = q_from_mass1_mass2(mass1, mass2)
+
+    # p_* = primary quantities
+    # s_* = secondary quantities
+
+    p_A1val = A1(q)
+    s_A2val = A2(q)
+
+    p_spinx = primary_spin(mass1, mass2, spin1x, spin2x)
+    p_spiny = primary_spin(mass1, mass2, spin1y, spin2y)
+
+    s_spinx = secondary_spin(mass1, mass2, spin1x, spin2y)
+    s_spiny = secondary_spin(mass1, mass2, spin1y, spin2y)
+
+    p_mass = primary_mass(mass1, mass2)
+    s_mass = secondary_mass(mass1, mass2)
+
+    # convert dimensionless spins to angular momentum.
+    # S_i = chi_i * m_i**2
+    p_Sperp = numpy.sqrt(p_spinx**2. + p_spiny**2.) * p_mass**2
+    s_Sperp = numpy.sqrt(s_spinx**2. + s_spiny**2.) * s_mass**2
+
+    Spval = numpy.max( [[p_A1val*p_Sperp], [s_A2val*s_Sperp]] )
+    return Spval
+
 def chi_p(mass1, mass2, spin1x, spin1y, spin2x, spin2y):
     """Returns the effective precession spin from mass1, mass2, spin1x,
     spin1y, spin2x, and spin2y.
+    Defined by Eq. 3.4 of 1408.1810
+    Note we assume mass1 >= mass2 which is the opposite convention to 1408.1810.
     """
-    xi1 = secondary_xi(mass1, mass2, spin1x, spin1y, spin2x, spin2y)
-    xi2 = primary_xi(mass1, mass2, spin1x, spin1y, spin2x, spin2y)
-    return chi_p_from_xi1_xi2(xi1, xi2)
+    q = q_from_mass1_mass2(mass1, mass2)
+
+    Spval = Sp(mass1, mass2, spin1x, spin1y, spin2x, spin2y)
+    p_A1val = A1(q)
+
+    p_mass = primary_mass(mass1, mass2)
+    chip = Spval / (p_A1val * p_mass**2.)
+
+    return chip
 
 def phi_a(mass1, mass2, spin1x, spin1y, spin2x, spin2y):
     """ Returns the angle between the in-plane perpendicular spins."""
