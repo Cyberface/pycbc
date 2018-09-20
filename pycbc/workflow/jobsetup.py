@@ -1627,7 +1627,7 @@ class PycbcCreateInjectionsExecutable(Executable):
         super(PycbcCreateInjectionsExecutable, self).__init__(
                                cp, exe_name, universe, ifo, out_dir, tags)
 
-    def create_node(self, config_file=None, seed=None, tags=None):
+    def create_node(self, config_file=None, seed=None, tags=None, ext=".hdf"):
         """ Set up a CondorDagmanNode class to run ``pycbc_create_injections``.
 
         Parameters
@@ -1639,6 +1639,9 @@ class PycbcCreateInjectionsExecutable(Executable):
             Seed to use for generating injections.
         tags : list
             A list of tags to include in filenames.
+        ext : str
+            Output file extension. Use '.hdf' or '.xml' for sim_inspiral table
+            ( Default = '.hdf' )
 
         Returns
         --------
@@ -1660,7 +1663,7 @@ class PycbcCreateInjectionsExecutable(Executable):
         if seed:
             node.add_opt("--seed", seed)
         injection_file = node.new_output_file_opt(analysis_time,
-                                                  ".hdf", "--output-file",
+                                                  ext, "--output-file",
                                                   tags=tags)
 
         return node, injection_file

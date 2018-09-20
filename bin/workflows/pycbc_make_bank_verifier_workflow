@@ -26,6 +26,7 @@ template bank.
 from __future__ import division
 import os
 import argparse
+import logging
 
 from glue import segments
 
@@ -34,6 +35,7 @@ import pycbc.workflow as wf
 import pycbc.workflow.pegasus_workflow as pwf
 from pycbc.results import create_versioning_page, static_table, layout
 from pycbc.workflow import LalappsInspinjExecutable
+from pycbc.workflow import PycbcCreateInjectionsExecutable
 from pycbc.workflow import setup_splittable_dax_generated
 
 # Boiler-plate stuff
@@ -148,7 +150,7 @@ class BanksimTablePointInjsExecutable(wf.Executable):
 
 # Argument parsing and setup of workflow
 
-# Use the standard workflow command-line parsing routines. Things like a 
+# Use the standard workflow command-line parsing routines. Things like a
 # configuration file are specified within the "workflow command line group"
 # so run this with --help to see what options are added.
 _desc = __doc__[1:]
@@ -158,8 +160,14 @@ parser.add_argument("--workflow-name", type=str, default='bank_verifier',
                     help="Descriptive name of the analysis.")
 parser.add_argument("-d", "--output-dir", default=None,
                     help="Path to output directory.")
+
+parser.add_argument("--verbose", action="store_true", default=False,
+                    help="Print logging messages.")
+
 wf.add_workflow_command_line_group(parser)
 args = parser.parse_args()
+
+pycbc.init_logging(args.verbose)
 
 # Create the workflow object
 workflow = wf.Workflow(args, args.workflow_name)
@@ -182,16 +190,48 @@ inp_bank.description='TEMPLATEBANK'
 inp_bank.ifo_list=(['H1','L1','V1'])
 inp_bank.segment = workflow.analysis_time
 
-# Inspinj job
-inspinj_job = LalappsInspinjExecutable(workflow.cp, 'injection', out_dir='.',
-                                       ifos='HL', tags=[])
+# Injection Job
+# determine which executable will be used to generate injections
+injection_generator = workflow.cp.get('workflow', 'injection-generator')
 
-def add_banksim_set(workflow, file_tag, num_injs, curr_tags, split_banks):
+supported_injection_generators = ['inspinj', 'pycbc_create_injections']
+
+if injection_generator not in supported_injection_generators:
+    err_msg = """'injection-generator = {}' is not supported. \
+Please choose from = {}
+""".format(injection_generator,supported_injection_generators)
+    raise ValueError(err_msg)
+logging.info("Running with injection_generator = {}".format(injection_generator))
+
+if injection_generator == "inspinj":
+    sec_name = "inspinj_injection"
+    injection_job = LalappsInspinjExecutable(workflow.cp, sec_name, out_dir='.',
+                                        ifos='HL', tags=[])
+elif injection_generator == "pycbc_create_injections":
+    sec_name = "pycbc_injection"
+    injection_job = PycbcCreateInjectionsExecutable(
+        workflow.cp, sec_name, out_dir=".", ifo="HL", tags=[])
+
+def add_banksim_set(workflow, file_tag, num_injs, curr_tags, split_banks,
+                    injection_generator):
     """Add a group of jobs that does a complete banksim.
     """
-    inspinj_job.update_current_tags(curr_tags)
-    t_seg = segments.segment([1000000000, 1000000000+int(num_injs)])
-    node = inspinj_job.create_node(t_seg)
+    injection_job.update_current_tags(curr_tags)
+    start_time = 1000000000
+    end_time = 1000000000+int(num_injs)
+    t_seg = segments.segment([start_time, end_time])
+    if injection_generator == "inspinj":
+        node = injection_job.create_node(t_seg)
+    elif injection_generator == "pycbc_create_injections":
+        # PycbcCreateInjectionsExecutable gets the segment length
+        # from the 'workflow' section of the ini file.
+        # Here we override the values from the ini file as they don't
+        # get used for anything else.
+        workflow.cp.set("workflow", "start-time", str(start_time))
+        workflow.cp.set("workflow", "end-time", str(end_time))
+        inj_file_ext = workflow.cp.get("pycbc_injection", "output-file-format")
+        node = injection_job.create_node(workflow.cp, ext=inj_file_ext)
+
     workflow += node
     inj_file = node.output_file
     split_injs = setup_splittable_dax_generated(workflow, [inj_file],
@@ -244,7 +284,7 @@ for file_tag, num_injs in workflow.cp.items('workflow-pointinjs'):
     output_pointinjs[file_tag] = curr_file
 
 curr_tags = ['broadinjbanksplit']
-split_banks = setup_splittable_dax_generated(workflow, [inp_bank], 
+split_banks = setup_splittable_dax_generated(workflow, [inp_bank],
                                              'splitbankfiles', curr_tags)
 
 output_broadinjs = {}
