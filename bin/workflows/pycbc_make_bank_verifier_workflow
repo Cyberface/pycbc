@@ -280,7 +280,7 @@ output_pointinjs = {}
 for file_tag, num_injs in workflow.cp.items('workflow-pointinjs'):
     curr_tags = ['shortinjs', file_tag]
     curr_file = add_banksim_set(workflow, file_tag, num_injs, curr_tags,
-                                split_banks)
+                                split_banks, injection_generator)
     output_pointinjs[file_tag] = curr_file
 
 curr_tags = ['broadinjbanksplit']
@@ -291,7 +291,7 @@ output_broadinjs = {}
 for file_tag, num_injs in workflow.cp.items('workflow-broadinjs'):
     curr_tags = ['broadinjs', file_tag]
     curr_file = add_banksim_set(workflow, file_tag, num_injs, curr_tags,
-                                split_banks)
+                                split_banks, injection_generator)
     output_broadinjs[file_tag] = curr_file
 
 plotting_nodes = []
