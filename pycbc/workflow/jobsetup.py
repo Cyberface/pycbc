@@ -1622,6 +1622,7 @@ class PycbcCreateInjectionsExecutable(Executable):
     """
 
     current_retention_level = Executable.ALL_TRIGGERS
+    file_input_options = ["--config-file"]
     def __init__(self, cp, exe_name, ifo=None, out_dir=None,
                  universe=None, tags=None):
         super(PycbcCreateInjectionsExecutable, self).__init__(
@@ -1659,7 +1660,6 @@ class PycbcCreateInjectionsExecutable(Executable):
 
         # make node for running executable
         node = Node(self)
-        node.add_input_opt("--config-file", config_file)
         if seed:
             node.add_opt("--seed", seed)
         injection_file = node.new_output_file_opt(analysis_time,
