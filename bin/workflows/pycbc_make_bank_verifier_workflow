@@ -222,6 +222,7 @@ def add_banksim_set(workflow, file_tag, num_injs, curr_tags, split_banks,
     t_seg = segments.segment([start_time, end_time])
     if injection_generator == "inspinj":
         node = injection_job.create_node(t_seg)
+        inj_file = node.output_file
     elif injection_generator == "pycbc_create_injections":
         # PycbcCreateInjectionsExecutable gets the segment length
         # from the 'workflow' section of the ini file.
@@ -230,10 +231,9 @@ def add_banksim_set(workflow, file_tag, num_injs, curr_tags, split_banks,
         workflow.cp.set("workflow", "start-time", str(start_time))
         workflow.cp.set("workflow", "end-time", str(end_time))
         inj_file_ext = workflow.cp.get("pycbc_injection", "output-file-format")
-        node = injection_job.create_node(workflow.cp, ext=inj_file_ext)
+        node, inj_file = injection_job.create_node(ext=inj_file_ext)
 
     workflow += node
-    inj_file = node.output_file
     split_injs = setup_splittable_dax_generated(workflow, [inj_file],
                                                 'splitinjfiles', curr_tags)
     # Banksim job
