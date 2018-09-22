@@ -231,7 +231,6 @@ def add_banksim_set(workflow, file_tag, num_injs, curr_tags, split_banks,
 
         inj_file_ext = workflow.cp.get("pycbc_injection-extra", "output-file-format")
         injection_config_file = workflow.cp.get("pycbc_injection"+"-"+curr_tags[1], "config-file")
-        print("injection_config_file = {}".format(injection_config_file))
         injection_cp = wf.File.from_path(injection_config_file)
         node, inj_file = \
             injection_job.create_node(config_file=injection_cp,
