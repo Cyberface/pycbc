@@ -1622,13 +1622,15 @@ class PycbcCreateInjectionsExecutable(Executable):
     """
 
     current_retention_level = Executable.ALL_TRIGGERS
+    # This might be plural i.e. "--config-files"
     file_input_options = ["--config-file"]
     def __init__(self, cp, exe_name, ifo=None, out_dir=None,
                  universe=None, tags=None):
         super(PycbcCreateInjectionsExecutable, self).__init__(
                                cp, exe_name, universe, ifo, out_dir, tags)
 
-    def create_node(self, config_file=None, seed=None, tags=None, ext=".hdf"):
+    def create_node(self, config_file=None, seed=None, tags=None, ext=".hdf",
+                    start_time=None, end_time=None):
         """ Set up a CondorDagmanNode class to run ``pycbc_create_injections``.
 
         Parameters
@@ -1643,6 +1645,14 @@ class PycbcCreateInjectionsExecutable(Executable):
         ext : str
             Output file extension. Use '.hdf' or '.xml' for sim_inspiral table
             ( Default = '.hdf' )
+        start_time : int
+            Use this to override the value of the 'start-time' given in
+            the 'config_file' [workflow] section
+            ( Default = None )
+        end_time : int
+            Use this to override the value of the 'end-time' given in
+            the 'config_file' [workflow] section
+            ( Default = None )
 
         Returns
         --------
@@ -1654,12 +1664,15 @@ class PycbcCreateInjectionsExecutable(Executable):
         tags = [] if tags is None else tags
 
         # get analysis start and end time
-        start_time = self.cp.get("workflow", "start-time")
-        end_time = self.cp.get("workflow", "end-time")
+        if start_time is None:
+            start_time = self.cp.get("workflow", "start-time")
+        if end_time is None:
+            end_time = self.cp.get("workflow", "end-time")
         analysis_time = segments.segment(int(start_time), int(end_time))
 
         # make node for running executable
         node = Node(self)
+        # node.add_input_opt("--config-file", config_file)
         if seed:
             node.add_opt("--seed", seed)
         injection_file = node.new_output_file_opt(analysis_time,
