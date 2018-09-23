@@ -173,6 +173,15 @@ pycbc.init_logging(args.verbose)
 # Create the workflow object
 workflow = wf.Workflow(args, args.workflow_name)
 
+wf.makedir(args.output_dir)
+os.chdir(args.output_dir)
+args.output_dir = '.'
+
+rdir = layout.SectionNumber('results', ['point_injection_sets',
+                                        'broad_injection_sets',
+                                        'workflow'])
+wf.makedir(rdir.base)
+wf.makedir(rdir['workflow'])
 
 # Input bank file
 inp_bank = workflow.cp.get('workflow', 'input-bank')
@@ -302,23 +311,6 @@ for file_tag, num_injs in workflow.cp.items('workflow-broadinjs'):
     curr_file = add_banksim_set(workflow, file_tag, num_injs, curr_tags,
                                 split_banks, injection_generator)
     output_broadinjs[file_tag] = curr_file
-
-###
-# moved the making and moving or directory until the end
-# because we are parsing in extra config files that are
-# defined in the main ini file
-###
-
-wf.makedir(args.output_dir)
-os.chdir(args.output_dir)
-args.output_dir = '.'
-
-rdir = layout.SectionNumber('results', ['point_injection_sets',
-                                        'broad_injection_sets',
-                                        'workflow'])
-wf.makedir(rdir.base)
-wf.makedir(rdir['workflow'])
-
 
 plotting_nodes = []
 
