@@ -1629,15 +1629,12 @@ class PycbcCreateInjectionsExecutable(Executable):
         super(PycbcCreateInjectionsExecutable, self).__init__(
                                cp, exe_name, universe, ifo, out_dir, tags)
 
-    def create_node(self, config_file=None, seed=None, tags=None, ext=".hdf",
-                    start_time=None, end_time=None):
+    def create_node(self, seed=None, tags=None, ext=".hdf",
+                    start_time=None, end_time=None, num_injs=None):
         """ Set up a CondorDagmanNode class to run ``pycbc_create_injections``.
 
         Parameters
         ----------
-        config_file : pycbc.workflow.core.File
-            A ``pycbc.workflow.core.File`` for inference configuration file
-            to be used with ``--config-files`` option.
         seed : int
             Seed to use for generating injections.
         tags : list
@@ -1652,6 +1649,12 @@ class PycbcCreateInjectionsExecutable(Executable):
         end_time : int
             Use this to override the value of the 'end-time' given in
             the 'config_file' [workflow] section
+            ( Default = None )
+        num_injs : int
+            Use this to specify the number of injections (the --ninjections
+            command line argument). If not provided (or set to None), this
+            command line argument is not set and it is assumed this will be
+            specified in the configuration file.
             ( Default = None )
 
         Returns
@@ -1670,16 +1673,18 @@ class PycbcCreateInjectionsExecutable(Executable):
             end_time = self.cp.get("workflow", "end-time")
         analysis_time = segments.segment(int(start_time), int(end_time))
 
+        if num_injs is not None:
+            node.add_opt("--ninjections", num_injs)
+
         # make node for running executable
         node = Node(self)
-        # node.add_input_opt("--config-file", config_file)
         if seed:
             node.add_opt("--seed", seed)
         injection_file = node.new_output_file_opt(analysis_time,
                                                   ext, "--output-file",
                                                   tags=tags)
 
-        return node, injection_file
+        return node
 
 class PycbcInferenceExecutable(Executable):
     """ The class responsible for creating jobs for ``pycbc_inference``.

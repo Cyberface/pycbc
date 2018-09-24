@@ -39,8 +39,8 @@ from pycbc.workflow import PycbcCreateInjectionsExecutable
 from pycbc.workflow import setup_splittable_dax_generated
 
 # Boiler-plate stuff
-__author__  = "Ian Harry <ian.harry@ligo.org> and \
-Sebastian Khan <sebastian.khan@ligo.org>"
+__author__ = "Ian Harry <ian.harry@ligo.org> and "
+__author__ += "Sebastian Khan <sebastian.khan@ligo.org>"
 __version__ = pycbc.version.git_verbose_msg
 __date__    = pycbc.version.date
 __program__ = "pycbc_make_bank_verifier_workflow"
@@ -194,58 +194,50 @@ inp_bank.ifo_list=(['H1','L1','V1'])
 inp_bank.segment = workflow.analysis_time
 
 # Injection Job
-# determine which executable will be used to generate injections
-injection_generator = workflow.cp.get('workflow', 'injection-generator')
+injection_exe = workflow.cp.get('executables', 'injection')
+injection_exe = os.path.basename(injection_exe)
+logging.info("Using {} for injection generation.".format(injection_exe))
 
-# these names are the fields in ini file that point to the executable also.
-supported_injection_generators = ['inspinj_injection', 'pycbc_injection']
-
-if injection_generator not in supported_injection_generators:
-    err_msg = """'injection-generator = {}' is not supported. \
-Please choose from = {}
-""".format(injection_generator,supported_injection_generators)
-    raise ValueError(err_msg)
-logging.info("Running with injection_generator = {}".format(injection_generator))
-
-if injection_generator == "inspinj":
+if injection_exe == "lalapps_inspinj":
     injection_job = LalappsInspinjExecutable(workflow.cp,
-        injection_generator, out_dir='.', ifos='HL', tags=[])
-elif injection_generator == "pycbc_injection":
+        'injection', out_dir='.', ifos='HL', tags=[])
+elif injection_exe == "pycbc_create_injections":
     injection_job = PycbcCreateInjectionsExecutable(
-        workflow.cp, injection_generator, out_dir=".", ifo="HL", tags=[])
+        workflow.cp, 'injection', out_dir=".", ifo="HL", tags=[])
+else:
+    err_msg = "Injection executable {} is not supported.".format(injection_exe)
+    err_msg += " Please use, lalapps_inspinj or pycbc_create_injections."
+    raise ValueError(err_msg)
 
-def add_banksim_set(workflow, file_tag, num_injs, curr_tags, split_banks,
-                    injection_generator):
+
+def add_banksim_set(workflow, file_tag, num_injs, curr_tags, split_banks):
     """Add a group of jobs that does a complete banksim.
     """
-    if injection_generator == "pycbc_injection":
-        # had to put this near the top of this function
-        # so othat num_injs would get set in the dax for all cases.
-        # some voodoo.
-        workflow.cp.set("pycbc_injection", "ninjections", num_injs)
-
     # curr_tags are like [section_heading, injection_set_name]
     injection_job.update_current_tags(curr_tags)
 
     start_time = 1000000000
     end_time = 1000000000+int(num_injs)
 
-    if injection_generator == "inspinj":
-
+    if injection_exe == "lalapps_inspinj":
         t_seg = segments.segment([start_time, end_time])
         node = injection_job.create_node(t_seg)
         inj_file = node.output_file
 
-    elif injection_generator == "pycbc_injection":
-
-        inj_file_ext = workflow.cp.get("pycbc_injection-extra", "output-file-format")
-        injection_config_file = workflow.cp.get("pycbc_injection"+"-"+curr_tags[1], "config-file")
-        injection_cp = wf.File.from_path(injection_config_file)
-        node, inj_file = \
-            injection_job.create_node(config_file=injection_cp,
-                                      ext=inj_file_ext,
-                                      start_time=start_time,
-                                      end_time=end_time)
+    elif injection_exe == "pycbc_create_injections":
+        # Set a default value. When .hdf is supported this should be .hdf
+        inj_file_ext = ".xml"
+        # Allow overrides from config file
+        if workflow.cp.has_option_tags("workflow-injection",
+                                       "output-file-format", curr_tags):
+            inj_file_ext = workflow.cp.get_option_tags("workflow-injection",
+                                                       "output-file-format",
+                                                       curr_tags)
+        node = injection_job.create_node(ext=inj_file_ext,
+                                         start_time=start_time,
+                                         end_time=end_time,
+                                         num_injs=num_injs)
+        inj_file = node.output_file
 
     workflow += node
     split_injs = setup_splittable_dax_generated(workflow, [inj_file],
@@ -269,9 +261,6 @@ def add_banksim_set(workflow, file_tag, num_injs, curr_tags, split_banks,
         currinj_banksim_files = wf.FileList([])
         for bank_idx, split_bank in enumerate(split_banks):
             bank_tag = 'BANK{}'.format(bank_idx)
-            # does this need to be here?
-            # seems redundent with a few lines above.
-            inj_tag = 'INJ{}'.format(inj_idx)
             node = banksim_job.create_node(workflow.analysis_time, split_inj,
                                            split_bank,
                                            extra_tags=[bank_tag,inj_tag])
@@ -297,7 +286,7 @@ for file_tag, num_injs in workflow.cp.items('workflow-pointinjs'):
     curr_tags = ['shortinjs', file_tag]
     logging.info("working curr_tags = {}".format(curr_tags))
     curr_file = add_banksim_set(workflow, file_tag, num_injs, curr_tags,
-                                split_banks, injection_generator)
+                                split_banks)
     output_pointinjs[file_tag] = curr_file
 
 curr_tags = ['broadinjbanksplit']
@@ -309,7 +298,7 @@ for file_tag, num_injs in workflow.cp.items('workflow-broadinjs'):
     curr_tags = ['broadinjs', file_tag]
     logging.info("working curr_tags = {}".format(curr_tags))
     curr_file = add_banksim_set(workflow, file_tag, num_injs, curr_tags,
-                                split_banks, injection_generator)
+                                split_banks)
     output_broadinjs[file_tag] = curr_file
 
 plotting_nodes = []
