@@ -1622,8 +1622,7 @@ class PycbcCreateInjectionsExecutable(Executable):
     """
 
     current_retention_level = Executable.ALL_TRIGGERS
-    # This might be plural i.e. "--config-files"
-    file_input_options = ["--config-file"]
+    file_input_options = ["--config-files"]
     def __init__(self, cp, exe_name, ifo=None, out_dir=None,
                  universe=None, tags=None):
         super(PycbcCreateInjectionsExecutable, self).__init__(
