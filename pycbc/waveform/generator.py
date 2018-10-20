@@ -562,11 +562,11 @@ class FDomainDetFrameGenerator(object):
                     "These must be either in the frozen params or the "
                     "variable args.")
             # Dictionary of frequency arrays for each detector
-            if 'sample_points_for_detectors' in frozen_params:
-                self.sample_points_for_detectors = \
-                frozen_params['sample_points_for_detectors'].copy()
+            if 'sample_points_per_detectors' in frozen_params:
+                self.sample_points_per_detectors = \
+                frozen_params['sample_points_per_detectors'].copy()
             else:
-                self.sample_points_for_detectors = None
+                self.sample_points_per_detectors = None
         else:
             self.detectors = {'RF': None}
         self.detector_names = sorted(self.detectors.keys())
@@ -602,11 +602,11 @@ class FDomainDetFrameGenerator(object):
         rfparams = {param: self.current_params[param]
             for param in kwargs if param not in self.location_args}
 
-        if self.sample_points_for_detectors:
+        if self.sample_points_per_detectors:
             hp_dict = {}
             hc_dict = {}
-            for k, v in self.sample_points_for_detectors.iteritems():
-                freqs = self.sample_points_for_detectors[k]
+            for k, v in self.sample_points_per_detectors.iteritems():
+                freqs = self.sample_points_per_detectors[k]
                 hp, hc = self.rframe_generator.generate(sample_points=freqs, **rfparams)
                 hp_dict[k] = hp
                 hc_dict[k] = hc
@@ -633,7 +633,7 @@ class FDomainDetFrameGenerator(object):
                             self.current_params['dec'],
                             self.current_params['polarization'],
                             self.current_params['tc'])
-                if self.sample_points_for_detectors:
+                if self.sample_points_per_detectors:
                     thish = fp*hp[detname] + fc*hc[detname]
                 else:
                     thish = fp*hp + fc*hc
