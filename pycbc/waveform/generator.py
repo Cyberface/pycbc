@@ -237,12 +237,12 @@ class FDomainSequenceCBCGenerator(BaseCBCGenerator):
     detector response function applied. For more details, see `BaseGenerator`.
 
     Derived parameters not understood by `get_fd_waveform_sequence` may be used as
-    variable args and/or frozen parameters, as long as they can be converted into 
+    variable args and/or frozen parameters, as long as they can be converted into
     parameters that `get_fd_waveform_sequence` can use. For example, `mchirp` and
     `eta` (currently, the only supported derived parameters) may be used as
     variable/frozen params; these are converted to `mass1` and `mass2` prior to
     calling the waveform generator function.
-    
+
     `frequencies_per_detector` is a dictionary of 1D numpy arrays of frequencies
     passed to the waveform generator.
 
@@ -629,7 +629,7 @@ class FDomainDetFrameGenerator(object):
                             self.current_params['dec'],
                             self.current_params['polarization'],
                             self.current_params['tc'])
-                if sample_points_for_detectors:
+                if self.sample_points_for_detectors:
                     thish = fp*hp[detname] + fc*hc[detname]
                 else:
                     thish = fp*hp + fc*hc
