@@ -516,8 +516,9 @@ class FDomainDetFrameGenerator(object):
     --------
     Initialize a generator:
 
-    >>> from pycbc.waveform.generator import FDomainDetFrameGenerator
-    >>> generator = FDomainDetFrameGenerator(waveform.FDomainCBCGenerator, 0., variable_args=['mass1', 'mass2', 'spin1z', 'spin2z', 'tc', 'ra', 'dec', 'polarization'], detectors=['H1', 'L1'], delta_f=1./64, f_lower=20., approximant='SEOBNRv2_ROM_DoubleSpin')
+    >>> from pycbc.waveform.generator import (FDomainDetFrameGenerator,
+                                       FDomainCBCGenerator)
+    >>> generator = FDomainDetFrameGenerator(FDomainCBCGenerator, 0., variable_args=['mass1', 'mass2', 'spin1z', 'spin2z', 'tc', 'ra', 'dec', 'polarization'], detectors=['H1', 'L1'], delta_f=1./64, f_lower=20., approximant='IMRPhenomD')
 
     Generate a waveform:
 
