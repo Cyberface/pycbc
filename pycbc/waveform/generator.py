@@ -159,7 +159,7 @@ class BaseCBCGenerator(BaseGenerator):
     """
     possible_args = set(parameters.td_waveform_params +
                         parameters.fd_waveform_params +
-                        ['taper'])
+                        ['taper', 'sample_points'])
     def __init__(self, generator, variable_args=(), **frozen_params):
         super(BaseCBCGenerator, self).__init__(generator,
             variable_args=variable_args, **frozen_params)
@@ -243,32 +243,36 @@ class FDomainSequenceCBCGenerator(BaseCBCGenerator):
     variable/frozen params; these are converted to `mass1` and `mass2` prior to
     calling the waveform generator function.
 
-    `frequencies_per_detector` is a dictionary of 1D numpy arrays of frequencies
-    passed to the waveform generator.
+    TODO: We should allow for each detector to have completely
+    independent of each other so something like the following should
+    be implemented:
+        `frequencies_per_detector` is a dictionary of 1D numpy arrays of frequencies
+        passed to the waveform generator.
 
     Examples
     --------
     Initialize a generator:
 
     >>> from pycbc.waveform.generator import FDomainSequenceCBCGenerator
-    >>> generator = FDomainSequenceCBCGenerator(variable_args=['mass1', 'mass2'], delta_f=1./32, f_lower=30., approximant='TaylorF2')
+    >>> from pycbc.types import Array
+    >>> import numpy as np
+    >>> sample_points = Array( np.linspace(20., 1024., 512) )
+    >>> generator = FDomainSequenceCBCGenerator(
+        variable_args=['mass1', 'mass2'],
+        approximant='IMRPhenomPv2',
+        sample_points=sample_points)
 
     Create a waveform with the variable arguments (in this case, mass1, mass2):
 
     >>> generator.generate(mass1=1.4, mass2=1.4)
-        (<pycbc.types.frequencyseries.FrequencySeries at 0x1110c1450>,
-         <pycbc.types.frequencyseries.FrequencySeries at 0x1110c1510>)
+        (<pycbc.types.array.Array at 0x10a8e7550>,
+         <pycbc.types.array.Array at 0x1110a06d0>)
 
     Note that the `current_params` contains the following parameters:
 
     >>> generator.current_params
-        {'approximant': 'TaylorF2',
-         'delta_f': 0.03125,
-         'eta': 0.25,
-         'f_lower': 30.0,
-         'mass1': 1.4,
-         'mass2': 1.4,
-         'mchirp': 1.5}
+        {'approximant': 'IMRPhenomPv2',
+         'sample_points': <pycbc.types.array.Array at 0x1111b9250>}
 
     """
     def __init__(self, variable_args=(), **frozen_params):
