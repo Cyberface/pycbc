@@ -29,7 +29,7 @@ import waveform
 import ringdown
 from pycbc import filter
 from pycbc import transforms
-from pycbc.types import TimeSeries
+from pycbc.types import TimeSeries, FrequencySeries
 from pycbc.waveform import parameters
 from pycbc.waveform.utils import apply_fd_time_shift, taper_timeseries, \
                                  ceilpow2
@@ -625,7 +625,22 @@ class FDomainDetFrameGenerator(object):
             tshift = 1./df - abs(hp._epoch)
         else:
             tshift = 0.
-        hp._epoch = hc._epoch = self._epoch
+        try:
+            hp._epoch = hc._epoch = self._epoch
+        except AttributeError:
+            # FIXME:
+            # This happened when using FDomainSequenceCBCGenerator
+            # gearing up for the ROQ implementation.
+            # What does LALInference do for the epoch parameter?
+            # We could estimate the epoch using something like
+            # imrphenomd_length_in_time ?
+            # epoch typically depends on the frequency resolution
+            # but this is not constant in the ROQ method.
+            # Also this currently doesn't work because
+            # get_fd_waveform_sequence returns pycbc.types.Array
+            # and the following code is designed to work with
+            # pycbc.types.FrequencySeries.
+            pass
         h = {}
         if self.detector_names != ['RF']:
             for detname, det in self.detectors.items():
@@ -635,7 +650,7 @@ class FDomainDetFrameGenerator(object):
                             self.current_params['polarization'],
                             self.current_params['tc'])
                 if self.sample_points_per_detectors:
-                    thish = fp*hp[detname] + fc*hc[detname]
+                    thish = fp*hp_dict[detname] + fc*hp_dict[detname]
                 else:
                     thish = fp*hp + fc*hc
                 if self.apply_time_shift:
