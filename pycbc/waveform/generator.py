@@ -651,6 +651,8 @@ class FDomainDetFrameGenerator(object):
                             self.current_params['tc'])
                 if self.sample_points_per_detectors:
                     thish = fp*hp_dict[detname] + fc*hp_dict[detname]
+                    print("not sure about this bit with .data...")
+                    thish.sample_points = self.sample_points_per_detectors[detname].data
                 else:
                     thish = fp*hp + fc*hc
                 if self.apply_time_shift:
