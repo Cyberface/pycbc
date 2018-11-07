@@ -1622,24 +1622,23 @@ class PycbcCreateInjectionsExecutable(Executable):
     """
 
     current_retention_level = Executable.ALL_TRIGGERS
+    file_input_options = ["--config-files"]
     def __init__(self, cp, exe_name, ifo=None, out_dir=None,
                  universe=None, tags=None):
         super(PycbcCreateInjectionsExecutable, self).__init__(
                                cp, exe_name, universe, ifo, out_dir, tags)
 
-    def create_node(self, config_file=None, seed=None, tags=None):
+    def create_node(self, seed=None, tags=None, ext=".hdf"):
         """ Set up a CondorDagmanNode class to run ``pycbc_create_injections``.
-
         Parameters
         ----------
-        config_file : pycbc.workflow.core.File
-            A ``pycbc.workflow.core.File`` for inference configuration file
-            to be used with ``--config-files`` option.
         seed : int
             Seed to use for generating injections.
         tags : list
             A list of tags to include in filenames.
-
+        ext : str
+            Output file extension. Use '.hdf' or '.xml' for sim_inspiral table
+            ( Default = '.hdf' )
         Returns
         --------
         node : pycbc.workflow.core.Node
@@ -1656,14 +1655,13 @@ class PycbcCreateInjectionsExecutable(Executable):
 
         # make node for running executable
         node = Node(self)
-        node.add_input_opt("--config-file", config_file)
         if seed:
             node.add_opt("--seed", seed)
         injection_file = node.new_output_file_opt(analysis_time,
-                                                  ".hdf", "--output-file",
+                                                  ext, "--output-file",
                                                   tags=tags)
 
-        return node, injection_file
+        return node
 
 class PycbcInferenceExecutable(Executable):
     """ The class responsible for creating jobs for ``pycbc_inference``.
