@@ -228,13 +228,9 @@ def add_banksim_set(workflow, file_tag, curr_tags, split_banks):
     # e.g. [pointinjs_ONE]
     injection_job.update_current_tags(curr_tags)
 
-    print(workflow.cp.items('injection-'+file_tag))
+    # print(workflow.cp.items('injection-'+file_tag))
     cf = workflow.cp.get('injection-'+file_tag, 'config-files')
     cf = wf.File.from_path(cf)
-
-    seed = workflow.cp.get('injection-'+file_tag, 'seed')
-    ninjections = workflow.cp.get('injection-'+file_tag, 'ninjections')
-
 
     # if injection_exe == "lalapps_inspinj":
     #     t_seg = segments.segment([start_time, end_time])
@@ -243,7 +239,7 @@ def add_banksim_set(workflow, file_tag, curr_tags, split_banks):
 
     # Set a default value. When .hdf is supported this should be .hdf
     inj_file_ext = ".xml"
-    node, inj_file = injection_job.create_node(config_file=cf, ext=inj_file_ext, ninjections=ninjections, seed=seed)
+    node, inj_file = injection_job.create_node(config_file=cf, ext=inj_file_ext)
     # inj_file = node.output_file
 
     workflow += node
