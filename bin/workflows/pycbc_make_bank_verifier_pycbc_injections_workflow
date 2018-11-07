@@ -27,6 +27,7 @@ from __future__ import division
 import os
 import argparse
 import logging
+import ConfigParser
 
 from glue import segments
 
@@ -177,15 +178,27 @@ wf.makedir(args.output_dir)
 os.chdir(args.output_dir)
 args.output_dir = '.'
 
-print(workflow.cp.items('workflow-pointinjs'))
+# some logic to let a user perform any combination of broad or point injs
+secs=[]
+try:
+    workflow.cp.items('workflow-pointinjs')
+    secs.append('point_injection_sets')
+    print(workflow.cp.items('workflow-pointinjs'))
+except ConfigParser.NoSectionError:
+    logging.info("no section workflow-pointinjs, not doing point injections")
 
-print(workflow.cp.items('workflow-broadinjs'))
+try:
+    workflow.cp.items('workflow-broadinjs')
+    secs.append('broad_injection_sets')
+    print(workflow.cp.items('workflow-broadinjs'))
+except ConfigParser.NoSectionError:
+    logging.info("no section workflow-broadinjs, not doing broad injections")
 
-import sys; sys.exit()
+# we always want a workflow section
+secs.append('workflow')
 
-rdir = layout.SectionNumber('results', ['point_injection_sets',
-                                        'broad_injection_sets',
-                                        'workflow'])
+rdir = layout.SectionNumber('results', secs)
+
 wf.makedir(rdir.base)
 wf.makedir(rdir['workflow'])
 
@@ -204,46 +217,34 @@ injection_exe = workflow.cp.get('executables', 'injection')
 injection_exe = os.path.basename(injection_exe)
 logging.info("Using {} for injection generation.".format(injection_exe))
 
-if injection_exe == "lalapps_inspinj":
-    injection_job = LalappsInspinjExecutable(workflow.cp,
-        'injection', out_dir='.', ifos='HL', tags=[])
-elif injection_exe == "pycbc_create_injections":
-    injection_job = PycbcCreateInjectionsExecutable(
-        workflow.cp, 'injection', out_dir=".", ifo="HL", tags=[])
-else:
-    err_msg = "Injection executable {} is not supported.".format(injection_exe)
-    err_msg += " Please use, lalapps_inspinj or pycbc_create_injections."
-    raise ValueError(err_msg)
+injection_job = PycbcCreateInjectionsExecutable(
+    workflow.cp, 'injection', out_dir=".", ifo="HL", tags=[])
 
-
-def add_banksim_set(workflow, file_tag, num_injs, curr_tags, split_banks):
+def add_banksim_set(workflow, file_tag, curr_tags, split_banks):
     """Add a group of jobs that does a complete banksim.
     """
-    # curr_tags are like [section_heading, injection_set_name]
+    # curr_tags are like [section-heading, injection-set-name]
+    # e.g. it looks for things like [section-heading_injection-set-name]
+    # e.g. [pointinjs_ONE]
     injection_job.update_current_tags(curr_tags)
 
-    start_time = 1000000000
-    end_time = 1000000000+int(num_injs)
+    print(workflow.cp.items('injection-'+file_tag))
+    cf = workflow.cp.get('injection-'+file_tag, 'config-files')
+    cf = wf.File.from_path(cf)
 
-    if injection_exe == "lalapps_inspinj":
-        t_seg = segments.segment([start_time, end_time])
-        node = injection_job.create_node(t_seg)
-        inj_file = node.output_file
+    seed = workflow.cp.get('injection-'+file_tag, 'seed')
+    ninjections = workflow.cp.get('injection-'+file_tag, 'ninjections')
 
-    elif injection_exe == "pycbc_create_injections":
-        # Set a default value. When .hdf is supported this should be .hdf
-        inj_file_ext = ".xml"
-        # Allow overrides from config file
-        if workflow.cp.has_option_tags("workflow-injection",
-                                       "output-file-format", curr_tags):
-            inj_file_ext = workflow.cp.get_option_tags("workflow-injection",
-                                                       "output-file-format",
-                                                       curr_tags)
-        node = injection_job.create_node(ext=inj_file_ext,
-                                         start_time=start_time,
-                                         end_time=end_time,
-                                         num_injs=num_injs)
-        inj_file = node.output_file
+
+    # if injection_exe == "lalapps_inspinj":
+    #     t_seg = segments.segment([start_time, end_time])
+    #     node = injection_job.create_node(t_seg)
+    #     inj_file = node.output_file
+
+    # Set a default value. When .hdf is supported this should be .hdf
+    inj_file_ext = ".xml"
+    node, inj_file = injection_job.create_node(config_file=cf, ext=inj_file_ext, ninjections=ninjections, seed=seed)
+    # inj_file = node.output_file
 
     workflow += node
     split_injs = setup_splittable_dax_generated(workflow, [inj_file],
@@ -283,15 +284,17 @@ def add_banksim_set(workflow, file_tag, num_injs, curr_tags, split_banks):
     return curr_node.output_file
 
 # Set up the actual banksims
-curr_tags = ['shortinjbanksplit']
+curr_tags = ['pointinjbanksplit']
 split_banks = setup_splittable_dax_generated(workflow, [inp_bank],
                                              'splitbankfiles', curr_tags)
 
+logging.info("looking in section: 'workflow-pointinjs'")
 output_pointinjs = {}
-for file_tag, num_injs in workflow.cp.items('workflow-pointinjs'):
-    curr_tags = ['shortinjs', file_tag]
+for file_tag, _ in workflow.cp.items('workflow-pointinjs'):
+    print(file_tag)
+    curr_tags = ['pointinjs', file_tag]
     logging.info("working curr_tags = {}".format(curr_tags))
-    curr_file = add_banksim_set(workflow, file_tag, num_injs, curr_tags,
+    curr_file = add_banksim_set(workflow, file_tag, curr_tags,
                                 split_banks)
     output_pointinjs[file_tag] = curr_file
 
@@ -299,11 +302,12 @@ curr_tags = ['broadinjbanksplit']
 split_banks = setup_splittable_dax_generated(workflow, [inp_bank],
                                              'splitbankfiles', curr_tags)
 
+logging.info("looking in section: 'broadinjs'")
 output_broadinjs = {}
-for file_tag, num_injs in workflow.cp.items('workflow-broadinjs'):
+for file_tag, _ in workflow.cp.items('workflow-broadinjs'):
     curr_tags = ['broadinjs', file_tag]
     logging.info("working curr_tags = {}".format(curr_tags))
-    curr_file = add_banksim_set(workflow, file_tag, num_injs, curr_tags,
+    curr_file = add_banksim_set(workflow, file_tag, curr_tags,
                                 split_banks)
     output_broadinjs[file_tag] = curr_file
 
