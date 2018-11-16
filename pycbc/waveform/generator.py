@@ -603,11 +603,15 @@ class FDomainDetFrameGenerator(object):
         rfparams = {param: self.current_params[param]
             for param in kwargs if param not in self.location_args}
 
-        if self.sample_points_per_detectors:
+        try:
+            curr_sample_points_per_detectors = kwargs['sample_points_per_detectors']
+        except:
+            curr_sample_points_per_detectors = self.sample_points_per_detectors
+        if curr_sample_points_per_detectors:
             hp_dict = {}
             hc_dict = {}
-            for k, v in self.sample_points_per_detectors.iteritems():
-                freqs = self.sample_points_per_detectors[k]
+            for k, v in curr_sample_points_per_detectors.iteritems():
+                freqs = curr_sample_points_per_detectors[k]
                 hp, hc = self.rframe_generator.generate(sample_points=freqs, **rfparams)
                 hp_dict[k] = hp
                 hc_dict[k] = hc
@@ -649,10 +653,9 @@ class FDomainDetFrameGenerator(object):
                             self.current_params['dec'],
                             self.current_params['polarization'],
                             self.current_params['tc'])
-                if self.sample_points_per_detectors:
+                if curr_sample_points_per_detectors:
                     thish = fp*hp_dict[detname] + fc*hp_dict[detname]
-                    print("not sure about this bit with .data...")
-                    thish.sample_points = self.sample_points_per_detectors[detname].data
+                    thish.sample_points = curr_sample_points_per_detectors[detname].numpy()
                 else:
                     thish = fp*hp + fc*hc
                 if self.apply_time_shift:
