@@ -69,8 +69,21 @@ class IndependentChiPChiEff(Arbitrary):
                'phi_a', 'phi_s']
 
     def __init__(self, mass1=None, mass2=None, chi_eff=None, chi_a=None,
-                 xi_bounds=None, nsamples=None, seed=None):
+                 xi_bounds=None, nsamples=None, seed=None,
+                 mass_ratio=None, total_mass=None):
 
+        self.mass_ratio = mass_ratio
+        self.total_mass = total_mass
+
+        if self.mass_ratio and self.total_mass:
+            self.mass_ratio_distr = Uniform(mass_ratio=self.mass_ratio)
+            self.total_mass_distr = Uniform(total_mass=self.total_mass)
+            m1_min = conversions.mass1_from_mtotal_q(self.total_mass[0], self.mass_ratio[0])
+            m1_max = conversions.mass1_from_mtotal_q(self.total_mass[1], self.mass_ratio[1])
+            mass1 = (m1_min, m1_max)
+            m2_min = conversions.mass2_from_mtotal_q(self.total_mass[0], self.mass_ratio[1])
+            m2_max = conversions.mass2_from_mtotal_q(self.total_mass[1], self.mass_ratio[0])
+            mass2 = (m2_min, m2_max)
         if isinstance(mass1, BoundedDist):
             self.mass1_distr = mass1
         else:
@@ -177,14 +190,20 @@ class IndependentChiPChiEff(Arbitrary):
         """Draws random samples without applying physical constrains.
         """
         # draw masses
-        try:
-            mass1 = kwargs['mass1']
-        except KeyError:
-            mass1 = self.mass1_distr.rvs(size=size)['mass1']
-        try:
-            mass2 = kwargs['mass2']
-        except KeyError:
-            mass2 = self.mass2_distr.rvs(size=size)['mass2']
+        if self.mass_ratio and self.total_mass:
+            mass_ratio = self.mass_ratio_distr.rvs(size=size)['mass_ratio']
+            total_mass = self.total_mass_distr.rvs(size=size)['total_mass']
+            mass1 = conversions.mass1_from_mtotal_q(total_mass, mass_ratio)
+            mass2 = conversions.mass2_from_mtotal_q(total_mass, mass_ratio)
+        else:
+            try:
+                mass1 = kwargs['mass1']
+            except KeyError:
+                mass1 = self.mass1_distr.rvs(size=size)['mass1']
+            try:
+                mass2 = kwargs['mass2']
+            except KeyError:
+                mass2 = self.mass2_distr.rvs(size=size)['mass2']
         # draw angles
         try:
             phi_a = kwargs['phi_a']
