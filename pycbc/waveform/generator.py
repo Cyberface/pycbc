@@ -654,7 +654,7 @@ class FDomainDetFrameGenerator(object):
                             self.current_params['polarization'],
                             self.current_params['tc'])
                 if curr_sample_points_per_detectors:
-                    thish = fp*hp_dict[detname] + fc*hp_dict[detname]
+                    thish = fp*hp_dict[detname] + fc*hc_dict[detname]
                     thish.sample_points = curr_sample_points_per_detectors[detname].numpy()
                 else:
                     thish = fp*hp + fc*hc
