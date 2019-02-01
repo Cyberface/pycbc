@@ -35,9 +35,13 @@ class ROQGaussianNoise(BaseDataModel):
     """
     name = 'roq_gaussian_noise'
 
-    def __init__(self, data, psd, deltaF, linear_weights, quadratic_weights,
-                 linear_freq_nodes, quadratic_freq_nodes, waveform_generator,
-                 variable_params, **kwargs):
+    def __init__(self, variable_params, data, waveform_generator,
+                 f_lower,
+                 deltaF,
+                 linear_weights, quadratic_weights,
+                 linear_freq_nodes, quadratic_freq_nodes,
+                 psds=None, f_upper=None, norm=None,
+                 **kwargs):
         """
         linear_weghts and quadratic_weights are dict with det ifo name as keys
         also the *_freq_nodes
@@ -45,17 +49,37 @@ class ROQGaussianNoise(BaseDataModel):
 
         super(ROQGaussianNoise, self).__init__(variable_params, data,
                                             waveform_generator, **kwargs)
-        self.psd = psd
+        self.psds = psds
         self.deltaF = deltaF
         self.linear_weights = linear_weights
         self.quadratic_weights = quadratic_weights
         self.linear_freq_nodes = linear_freq_nodes
         self.quadratic_freq_nodes = quadratic_freq_nodes
 
+        # check that the data sets all have the same lengths
+        dlens = numpy.array([len(d) for d in data.values()])
+        if not all(dlens == dlens[0]):
+            raise ValueError("all data must be of the same length")
+
+        # we'll use the first data set for setting values
+        d = data.values()[0]
+        N = len(d)
+        # figure out the kmin, kmax to use
+        self._f_lower = f_lower
+        kmin, kmax = pyfilter.get_cutoff_indices(f_lower, f_upper, self.deltaF,
+                                                 (N-1)*2)
+        self._kmin = kmin
+        self._kmax = kmax
+
         self.d_dot_d = {}
+        # this is lognl ?
         for d in self.data:
-            tmp = (numpy.vdot(self.data[d],self.data[d]/self.psd[d])*4.*self.deltaF).real
+            tmp = (numpy.vdot(self.data[d],self.data[d]/self.psds[d])*4.*self.deltaF).real
             self.d_dot_d.update({d:tmp})
+
+
+        self.sum_dd = -0.5 * sum(self.d_dot_d.values())
+        print("self.sum_dd = {}".format(self.sum_dd))
 
     @staticmethod
     def BuildROQWeights(data, B, deltaF):
@@ -112,17 +136,25 @@ class ROQGaussianNoise(BaseDataModel):
 
             # construct roq likelihood
             #FIXME: not sure about tranpose
-            #d_dot_h = (numpy.vdot(eim_strain_linear, self.linear_weights[det])).real
+            # d_dot_h = (numpy.vdot(eim_strain_linear, self.linear_weights[det])).real
             d_dot_h = (numpy.vdot(eim_strain_linear, self.linear_weights[det].T)).real
 
             #FIXME:not sure about tranpose
-            # h_dot_h = (numpy.vdot(eim_strain_quad, self.quadratic_weights[det].T)).real
-            h_dot_h = (numpy.vdot(eim_strain_quad, self.quadratic_weights[det])).real
+            h_dot_h = (numpy.vdot(eim_strain_quad, self.quadratic_weights[det].T)).real
+            # h_dot_h = (numpy.vdot(eim_strain_quad, self.quadratic_weights[det])).real
 
             # equation 11 arxiv:1604.08253
-            lr += 0.5 * ( -2*d_dot_h + h_dot_h - self.d_dot_d[det] )
+            print(det)
+            print("d_dot_h = {}".format(d_dot_h))
+            print("h_dot_h = {}".format(h_dot_h))
+            print("self.d_dot_d[det] = {}".format(self.d_dot_d[det]))
+            print("self.lognl = {}".format(self.lognl))
+            # lr += 0.5 * ( -2*d_dot_h + h_dot_h - self.d_dot_d[det] )
+            # lr += 0.5 * ( 2*d_dot_h - h_dot_h + self.d_dot_d[det] )
+            lr += 0.5 * ( 2*d_dot_h - h_dot_h )
 
-        self._current_stats.loglikelihood = lr + self.lognl
+        # self._current_stats.loglikelihood = lr + self.lognl
+        self._current_stats.loglikelihood = lr + self.sum_dd
 
         return float(lr)
 

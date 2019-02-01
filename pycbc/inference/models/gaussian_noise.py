@@ -325,6 +325,7 @@ class GaussianNoise(BaseDataModel):
             return self._nowaveform_loglr()
         lr = 0.
         for det, h in wfs.items():
+            print(det)
             # the kmax of the waveforms may be different than internal kmax
             kmax = min(len(h), self._kmax)
             if self._kmin >= kmax:
@@ -338,7 +339,9 @@ class GaussianNoise(BaseDataModel):
                 h[self._kmin:kmax] *= self._weight[det][slc]
                 # the inner products
                 cplx_hd = self.data[det][slc].inner(h[slc])  # <h, d>
+                print("<h, d> = {}".format(cplx_hd))
                 hh = h[slc].inner(h[slc]).real  # < h, h>
+                print("< h, h> = {}".format(hh))
             cplx_loglr = cplx_hd - 0.5*hh
             # store
             setattr(self._current_stats, '{}_optimal_snrsq'.format(det), hh)
@@ -347,6 +350,7 @@ class GaussianNoise(BaseDataModel):
             lr += cplx_loglr.real
         # also store the loglikelihood, to ensure it is populated in the
         # current stats even if loglikelihood is never called
+        print("dd = {}".format(self.lognl))
         self._current_stats.loglikelihood = lr + self.lognl
         return float(lr)
 
