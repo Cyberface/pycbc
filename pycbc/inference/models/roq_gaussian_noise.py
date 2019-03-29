@@ -135,13 +135,9 @@ class ROQGaussianNoise(BaseDataModel):
             eim_strain_quad = h_quad.numpy().conjugate() * h_quad.numpy()
 
             # construct roq likelihood
-            #FIXME: not sure about tranpose
-            # d_dot_h = (numpy.vdot(eim_strain_linear, self.linear_weights[det])).real
-            d_dot_h = (numpy.vdot(eim_strain_linear, self.linear_weights[det].T)).real
+            d_dot_h = (numpy.vdot(eim_strain_linear, self.linear_weights[det])).real
 
-            #FIXME:not sure about tranpose
-            h_dot_h = (numpy.vdot(eim_strain_quad, self.quadratic_weights[det].T)).real
-            # h_dot_h = (numpy.vdot(eim_strain_quad, self.quadratic_weights[det])).real
+            h_dot_h = (numpy.vdot(eim_strain_quad, self.quadratic_weights[det])).real
 
             # equation 11 arxiv:1604.08253
             print(det)
