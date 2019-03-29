@@ -140,11 +140,11 @@ class ROQGaussianNoise(BaseDataModel):
             h_dot_h = (numpy.vdot(eim_strain_quad, self.quadratic_weights[det])).real
 
             # equation 11 arxiv:1604.08253
-            print(det)
-            print("d_dot_h = {}".format(d_dot_h))
-            print("h_dot_h = {}".format(h_dot_h))
-            print("self.d_dot_d[det] = {}".format(self.d_dot_d[det]))
-            print("self.lognl = {}".format(self.lognl))
+            # print(det)
+            # print("d_dot_h = {}".format(d_dot_h))
+            # print("h_dot_h = {}".format(h_dot_h))
+            # print("self.d_dot_d[det] = {}".format(self.d_dot_d[det]))
+            # print("self.lognl = {}".format(self.lognl))
             # lr += 0.5 * ( -2*d_dot_h + h_dot_h - self.d_dot_d[det] )
             # lr += 0.5 * ( 2*d_dot_h - h_dot_h + self.d_dot_d[det] )
             lr += 0.5 * ( 2*d_dot_h - h_dot_h )
